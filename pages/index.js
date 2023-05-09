@@ -45,25 +45,41 @@ export default function Home() {
   return (
     <div className="container max-w-2xl mx-auto p-5">
       <Head>
-        <title>Replicate + Next.js</title>
+        <title>Talking Heads</title>
       </Head>
 
       <h1 className="py-6 text-center font-bold text-2xl">
-        Dream something with{" "}
-        <a href="https://replicate.com/stability-ai/stable-diffusion">
-          Stable Diffusion
-        </a>
+        Talking Heads
       </h1>
 
-      <form className="w-full flex" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          className="flex-grow"
-          name="prompt"
-          placeholder="Enter a prompt to display an image"
-        />
+      <form className="w-full" onSubmit={handleSubmit}>
+        <label className="block mb-2" htmlFor="prompt">
+          What should they say?
+        </label>
+        <div class="flex">
+          <textarea
+            id="prompt"
+            type="text"
+            rows="3"
+            className="flex-grow border-2 border-gray-600 rounded-md p-2"
+            name="prompt"
+          />
+        </div>
+
+        <label className="block mt-4 mb-2" htmlFor="image-prompt">
+          What should they look like?
+        </label>
+        <div class="flex">
+          <textarea
+            id="image-prompt"
+            type="text"
+            rows="3"
+            className="flex-grow border-2 border-gray-600 rounded-md p-2"
+            name="prompt"
+          />
+        </div>
         <button className="button" type="submit">
-          Go!
+          Generate
         </button>
       </form>
 
