@@ -10,7 +10,7 @@ const capitalizeFirstLetter = (str) => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const GenerateForm = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [audioResult, setAudioResult] = useState(null);
   const [imageResult, setImageResult] = useState(null);
   const [videoResult, setVideoResult] = useState(null);
@@ -53,9 +53,19 @@ const GenerateForm = () => {
     return prediction;
   };
 
+  const handleNew = () => {
+    setHasSubmitted(false);
+    setAudioResult(null);
+    setImageResult(null);
+    setVideoResult(null);
+    setAreResultsReady(false);
+    setLogs({ bark: '', controlnet: '', sadtalker: '' });
+    setStatuses({ bark: '', controlnet: '', sadtalker: '' });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setHasSubmitted(true);
 
     const barkResponse = await fetch("/api/bark", {
       ...fetchOptions,
@@ -74,7 +84,7 @@ const GenerateForm = () => {
 
     if (barkResponse.status !== 201 || controlnetResponse.status !== 201) {
       setError(barkPrediction.detail || controlnetPrediction.detail);
-      setIsSubmitting(false);
+      setHasSubmitted(false);
       return;
     }
 
@@ -132,7 +142,7 @@ const GenerateForm = () => {
 
   return (
     <div>
-      {!isSubmitting && (
+      {!hasSubmitted && (
         <form className="w-full" onSubmit={handleSubmit}>
           <label className="block mb-2" htmlFor="prompt">
             What should they say?
@@ -166,7 +176,7 @@ const GenerateForm = () => {
       )}
 
       <div>
-        {isSubmitting && (
+        {hasSubmitted && (
           <div>
             <Card heading="Audio">
               {!audioResult && (
@@ -192,16 +202,26 @@ const GenerateForm = () => {
             </Card>
 
             {imageResult && audioResult && (
-            <Card heading="Video">
-              {!videoResult && (
-                <Logs logs={logs.sadtalker} status={statuses.sadtalker} />
-              )}
+              <Card heading="Video">
+                {!videoResult && (
+                  <Logs logs={logs.sadtalker} status={statuses.sadtalker} />
+                )}
 
-              {videoResult && (
-                <video src={videoResult} controls className="w-full" />
-              )}
-            </Card>
+                {videoResult && (
+                  <video src={videoResult} controls className="w-full" />
+                )}
+              </Card>
             )}
+
+            <button
+              className="button inline-block mt-4"
+              onClick={(event) => {
+                event.preventDefault();
+                handleNew();
+              }}
+            >
+              Make another video
+            </button>
           </div>
         )}
       </div>
