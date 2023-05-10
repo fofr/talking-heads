@@ -11,8 +11,8 @@ const handler = createApiHandler(
     return {
       prompt: body.prompt,
       history_prompt: "announcer",
-      text_temp: 0.1,
-      waveform_temp: 0.2,
+      text_temp: 0.4,
+      waveform_temp: 0.4,
     };
   }
 );
