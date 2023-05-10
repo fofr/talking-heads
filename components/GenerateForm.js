@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import Spinner from './Spinner';
+import React, { useEffect, useState, useRef } from 'react';
 import Card from './Card';
 import Logs from './Logs';
 
@@ -10,7 +9,9 @@ const capitalizeFirstLetter = (str) => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const GenerateForm = () => {
+  const cancelRef = useRef(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [runningPredictions, setRunningPredictions] = useState([]);
   const [audioResult, setAudioResult] = useState(null);
   const [imageResult, setImageResult] = useState(null);
   const [videoResult, setVideoResult] = useState(null);
@@ -25,11 +26,16 @@ const GenerateForm = () => {
     }
   }
 
-  const pollPrediction = async (endpoint, id, logType) => {
+  const pollPrediction = async (id, logType) => {
     let prediction;
+    setRunningPredictions((prevRunningPredictions) => [
+      ...prevRunningPredictions,
+      id,
+    ]);
+
     do {
       await sleep(1000);
-      const response = await fetch(endpoint + id);
+      const response = await fetch(`/api/${id}`);
       prediction = await response.json();
       if (response.status !== 200) {
         setError(prediction.detail);
@@ -46,14 +52,21 @@ const GenerateForm = () => {
         [logType]: `${capitalizeFirstLetter(prediction.status)}…`,
       }));
     } while (
+      !cancelRef.current &&
       prediction.status !== "succeeded" &&
+      prediction.status !== "canceled" &&
       prediction.status !== "failed"
+    );
+
+    setRunningPredictions((prevRunningPredictions) =>
+      prevRunningPredictions.filter((runningPrediction) => runningPrediction !== id)
     );
 
     return prediction;
   };
 
-  const handleNew = () => {
+  const handleNew = (e) => {
+    e && e.preventDefault();
     setHasSubmitted(false);
     setAudioResult(null);
     setImageResult(null);
@@ -63,8 +76,18 @@ const GenerateForm = () => {
     setStatuses({ bark: '', controlnet: '', sadtalker: '' });
   };
 
+  const handleCancel = async (e) => {
+    e.preventDefault();
+    cancelRef.current = true;
+    runningPredictions.forEach((id) => {
+      fetch(`/api/${id}?action=cancel`);
+    });
+    handleNew();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    cancelRef.current = false;
     setHasSubmitted(true);
 
     const barkResponse = await fetch("/api/bark", {
@@ -89,15 +112,15 @@ const GenerateForm = () => {
     }
 
     const pollbark = async () => {
-      const barkResult = await pollPrediction("/api/bark/", barkPrediction.id, 'bark');
-      if (barkResult) {
+      const barkResult = await pollPrediction(barkPrediction.id, 'bark');
+      if (barkResult && !cancelRef.current) {
         setAudioResult(barkResult.output.audio_out);
       }
     };
 
     const pollControlnet = async () => {
-      const controlnetResult = await pollPrediction("/api/controlnet/", controlnetPrediction.id, 'controlnet');
-      if (controlnetResult) {
+      const controlnetResult = await pollPrediction(controlnetPrediction.id, 'controlnet');
+      if (controlnetResult && !cancelRef.current) {
         setImageResult(controlnetResult.output[0]);
       }
     };
@@ -107,7 +130,11 @@ const GenerateForm = () => {
       pollControlnet(),
     ]);
 
-    setAreResultsReady(true);
+    if (!cancelRef.current) {
+      setAreResultsReady(true);
+    }
+
+    cancelRef.current = false;
   };
 
   useEffect(() => {
@@ -128,7 +155,7 @@ const GenerateForm = () => {
         return;
       }
 
-      const sadtalkerResult = await pollPrediction("/api/sadtalker/", sadtalkerPrediction.id, 'sadtalker');
+      const sadtalkerResult = await pollPrediction(sadtalkerPrediction.id, 'sadtalker');
 
       if (sadtalkerResult) {
         setVideoResult(sadtalkerResult.output);
@@ -213,15 +240,21 @@ const GenerateForm = () => {
               </Card>
             )}
 
-            <button
-              className="button inline-block mt-4"
-              onClick={(event) => {
-                event.preventDefault();
-                handleNew();
-              }}
-            >
-              Make another video
-            </button>
+            <div className="flex flex-row items-center">
+              <button
+                className="button inline mt-4 mr-4"
+                onClick={handleNew}
+              >
+                Make another video
+              </button>
+
+              <button
+                className="button button-secondary mt-4"
+                onClick={handleCancel}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -19,6 +19,10 @@ input {
   @apply bg-lime-600 text-white rounded-md mt-6 block px-5 py-3;
 }
 
+.button-secondary {
+  @apply bg-gray-300 text-black;
+}
+
 .image-wrapper {
   width: 100%;
   aspect-ratio: 1 / 1;

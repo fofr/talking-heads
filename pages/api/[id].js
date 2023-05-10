@@ -5,7 +5,14 @@ const replicate = new Replicate({
 });
 
 const predictionHandler = async function handler(req, res) {
-  const prediction = await replicate.predictions.get(req.query.id);
+  const action = req.query.action;
+  let prediction;
+
+  if (action === "cancel") {
+    prediction = await replicate.predictions.cancel(req.query.id);
+  } else {
+    prediction = await replicate.predictions.get(req.query.id);
+  }
 
   if (prediction?.error) {
     res.statusCode = 500;
