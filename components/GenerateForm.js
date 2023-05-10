@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import Spinner from './Spinner';
 import Card from './Card';
+import Logs from './Logs';
+
+const capitalizeFirstLetter = (str) => {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -10,6 +15,8 @@ const GenerateForm = () => {
   const [imageResult, setImageResult] = useState(null);
   const [videoResult, setVideoResult] = useState(null);
   const [areResultsReady, setAreResultsReady] = useState(false);
+  const [logs, setLogs] = useState({ bark: '', controlnet: '', sadtalker: '' });
+  const [statuses, setStatuses] = useState({ bark: '', controlnet: '', sadtalker: '' });
 
   const fetchOptions = {
     method: "POST",
@@ -18,7 +25,7 @@ const GenerateForm = () => {
     }
   }
 
-  const pollPrediction = async (endpoint, id) => {
+  const pollPrediction = async (endpoint, id, logType) => {
     let prediction;
     do {
       await sleep(1000);
@@ -28,6 +35,16 @@ const GenerateForm = () => {
         setError(prediction.detail);
         return null;
       }
+
+      setLogs((prevLogs) => ({
+        ...prevLogs,
+        [logType]: prediction.logs,
+      }));
+
+      setStatuses((prevStatuses) => ({
+        ...prevStatuses,
+        [logType]: `${capitalizeFirstLetter(prediction.status)}…`,
+      }));
     } while (
       prediction.status !== "succeeded" &&
       prediction.status !== "failed"
@@ -62,14 +79,14 @@ const GenerateForm = () => {
     }
 
     const pollbark = async () => {
-      const barkResult = await pollPrediction("/api/bark/", barkPrediction.id);
+      const barkResult = await pollPrediction("/api/bark/", barkPrediction.id, 'bark');
       if (barkResult) {
         setAudioResult(barkResult.output.audio_out);
       }
     };
 
     const pollControlnet = async () => {
-      const controlnetResult = await pollPrediction("/api/controlnet/", controlnetPrediction.id);
+      const controlnetResult = await pollPrediction("/api/controlnet/", controlnetPrediction.id, 'controlnet');
       if (controlnetResult) {
         setImageResult(controlnetResult.output[0]);
       }
@@ -101,7 +118,7 @@ const GenerateForm = () => {
         return;
       }
 
-      const sadtalkerResult = await pollPrediction("/api/sadtalker/", sadtalkerPrediction.id);
+      const sadtalkerResult = await pollPrediction("/api/sadtalker/", sadtalkerPrediction.id, 'sadtalker');
 
       if (sadtalkerResult) {
         setVideoResult(sadtalkerResult.output);
@@ -153,22 +170,18 @@ const GenerateForm = () => {
           <div>
             <Card heading="Audio">
               {!audioResult && (
-                <div className="justify-center">
-                  <Spinner />
-                </div>
+                <Logs logs={logs.bark} status={statuses.bark} />
               )}
               {audioResult && (
                 <div>
-                  <audio src={audioResult} controls />
+                  <audio src={audioResult} controls className="w-full" />
                 </div>
               )}
             </Card>
 
             <Card heading="Image">
               {!imageResult && (
-                <div className="justify-center">
-                  <Spinner />
-                </div>
+                <Logs logs={logs.controlnet} status={statuses.controlnet} />
               )}
 
               {imageResult && (
@@ -181,9 +194,7 @@ const GenerateForm = () => {
             {imageResult && audioResult && (
             <Card heading="Video">
               {!videoResult && (
-                <div className="justify-center">
-                  <Spinner />
-                </div>
+                <Logs logs={logs.sadtalker} status={statuses.sadtalker} />
               )}
 
               {videoResult && (
