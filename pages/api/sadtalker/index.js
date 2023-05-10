@@ -5,6 +5,7 @@ const handler = createApiHandler(
   (body) => ({
     driven_audio: body.driven_audio,
     source_image: body.source_image,
+    still: false
   })
 );
 
